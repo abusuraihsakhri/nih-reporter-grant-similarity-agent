@@ -63,3 +63,30 @@ def test_supervisor_consensus_and_audit():
     assert main(["audit", "--task-id", "CLI-TEST-01"]) == 0
     assert main(["chat", "Explain", "specifications"]) == 0
     assert main(["verify-audit"]) == 0
+
+
+def test_nan_rejection_in_metrics():
+    """NaN values should be rejected by payload validation."""
+    import math
+    with pytest.raises(Exception):
+        SystemTaskPayload(task_id="T-NAN", target_identifier="KEY-01", primary_metric=math.nan)
+
+
+def test_infinity_rejection_in_metrics():
+    """Infinity values should be rejected by payload validation."""
+    with pytest.raises(Exception):
+        SystemTaskPayload(task_id="T-INF", target_identifier="KEY-01", secondary_metric=float("inf"))
+
+
+def test_empty_task_id_rejected():
+    """Empty task_id should fail validation."""
+    with pytest.raises(Exception):
+        SystemTaskPayload(task_id="", target_identifier="KEY-01", primary_metric=10.0)
+
+
+def test_phi_redaction():
+    """PHIGuard.redact_phi should replace PHI with safe tokens."""
+    redacted = PHIGuard.redact_phi("Patient John Doe MRN-12345678 visited clinic")
+    assert "John Doe" not in redacted
+    assert "MRN-12345678" not in redacted
+    assert "[REDACTED_IDENTIFIER]" in redacted

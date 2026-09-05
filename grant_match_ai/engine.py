@@ -3,8 +3,7 @@ Core Algorithmic Engine & Cryptographic / Biological Logic for GrantMatch-AI: NI
 Domain: Research Administration
 Standard: NIH RePORT & Center for Scientific Review
 """
-import math
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from .models import FrontierPayload, AgentTelemetryAlert, ExecutionStatus
 
 
