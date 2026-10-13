@@ -75,3 +75,30 @@ def test_web_app_is_served_and_labels_are_present():
     assert response.status_code == 200
     assert "Local browser demo" in response.text
     assert 'for="task_id"' in response.text
+
+
+
+def test_main_csv_export_quotes_spreadsheet_formulas(tmp_path):
+    import csv
+    from cli import main
+
+    source = tmp_path / "input.csv"
+    destination = tmp_path / "output.csv"
+    source.write_text(
+        'task_id,target_identifier,primary_metric,secondary_metric,status_descriptor\n'
+        '"=HYPERLINK(""https://example.org"")",KEY-01,10,5,NOMINAL\n',
+        encoding="utf-8",
+    )
+    assert main(["batch", "-i", str(source), "-o", str(destination)]) == 0
+    with destination.open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    assert len(rows) == 1
+    assert rows[0]["task_id"].startswith("'=HYPERLINK")
+    assert rows[0]["overall_urgency"] == "ROUTINE"
+
+
+def test_invalid_simulation_size_rejected():
+    from simulator import run_simulation
+
+    with pytest.raises(ValueError, match="positive"):
+        run_simulation(0)
