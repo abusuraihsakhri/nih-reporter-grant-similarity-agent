@@ -42,7 +42,7 @@ class AgentTelemetryAlert:
     summary: str
     technical_details: str
     actionable_remediation: str
-    standard_reference: str = "NIH RePORT & Center for Scientific Review"
+    standard_reference: str = "Prototype demonstration thresholds (not NIH methodology)"
     timestamp: str = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
