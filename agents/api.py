@@ -1,10 +1,14 @@
 """
 FastAPI REST API Server for Nih Reporter Grant Similarity Agent.
 """
+import os
+import secrets
+from pathlib import Path
 from typing import Dict, Any, List
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from .base import AuditLogger, PHIGuard
+from .base import AuditLogger, PHIGuard, SecurityException
 from .models import SystemTaskPayload, ConsensusDossier
 from .supervisor import SystemSupervisor
 
@@ -19,6 +23,20 @@ app = FastAPI(
 
 class ChatRequest(BaseModel):
     query: str
+
+
+@app.get("/", include_in_schema=False)
+def home():
+    return FileResponse(Path(__file__).resolve().parent.parent / "web" / "index.html")
+
+
+def require_audit_token(x_audit_token: str | None = Header(default=None)):
+    """Do not expose log metadata without an explicitly configured credential."""
+    expected = os.environ.get("AUDIT_API_TOKEN")
+    if not expected:
+        raise HTTPException(status_code=503, detail="Audit log access is not configured")
+    if not x_audit_token or not secrets.compare_digest(x_audit_token, expected):
+        raise HTTPException(status_code=403, detail="Audit log access denied")
 
 
 @app.get("/health")
@@ -37,7 +55,10 @@ def metrics():
 
 @app.post("/api/audit")
 def api_audit(payload: SystemTaskPayload):
-    dossier = supervisor.process_task(payload)
+    try:
+        dossier = supervisor.process_task(payload)
+    except SecurityException:
+        raise HTTPException(status_code=422, detail="Input contains a possible personal identifier") from None
     return dossier.to_dict()
 
 
@@ -46,10 +67,10 @@ def api_chat(req: ChatRequest):
     try:
         ans = supervisor.query_supervisory_chat(req.query)
         return {"response": ans}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except SecurityException:
+        raise HTTPException(status_code=422, detail="Input contains a possible personal identifier") from None
 
 
 @app.get("/api/audit/logs")
-def api_audit_logs():
+def api_audit_logs(_authorization: None = Depends(require_audit_token)):
     return {"audit_trail": AuditLogger.get_trail(), "verified": AuditLogger.verify_integrity()}
