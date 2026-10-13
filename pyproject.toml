@@ -13,15 +13,25 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Topic :: Security/Cryptography",
+    "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 requires-python = ">=3.9"
-dependencies = []
+dependencies = ["pydantic>=2.0,<3"]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.100,<1", "uvicorn>=0.23,<1"]
+dev = ["pytest>=8,<10", "httpx>=0.24,<1"]
+
+[tool.setuptools]
+packages = ["agents", "grant_match_ai"]
+py-modules = ["cli", "enrichment", "simulator", "grant_match_ai_app"]
+
 
 [project.scripts]
 nih-reporter-grant-similarity-engine = "grant_match_ai.cli:main"
+nih-reporter-grant-similarity-agent = "cli:main"
 
 [project.urls]
-Homepage = "https://github.com/abusuraihsakhri/nih-reporter-grant-similarity-engine"
+Homepage = "https://github.com/abusuraihsakhri/nih-reporter-grant-similarity-agent"
 Repository = "https://github.com/abusuraihsakhri/nih-reporter-grant-similarity-engine.git"
