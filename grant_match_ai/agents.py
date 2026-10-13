@@ -2,9 +2,11 @@
 Distributed Component Coordination & Executive Hierarchy for GrantMatch-AI: NIH RePORT & RePADD Grant Scientific Similarity Agent.
 Domain: Research Administration
 """
+import json
 import uuid
 from typing import Dict, Any, List, Optional
 from .models import FrontierPayload, AgentTelemetryAlert, ExecutionStatus
+from agents.base import PHIGuard
 from .engine import FrontierDomainEngine
 
 
@@ -68,6 +70,7 @@ class GrantMatchCoordinator:
         self.execution_ledger: Dict[str, Dict[str, Any]] = {}
 
     def process(self, payload: FrontierPayload) -> Dict[str, Any]:
+        PHIGuard.assert_no_phi(json.dumps(payload.__dict__, default=str))
         all_alerts: List[AgentTelemetryAlert] = []
         all_alerts.extend(self.sub_1.audit(payload))
         all_alerts.extend(self.sub_2.audit(payload))
