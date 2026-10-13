@@ -5,11 +5,25 @@ import argparse
 import csv
 import json
 import sys
+from agents.base import SecurityException
 from agents.models import SystemTaskPayload
 from agents.supervisor import SystemSupervisor
 from agents.base import AuditLogger
 
 supervisor = SystemSupervisor(model_provider="mock")
+
+
+def _safe_spreadsheet_cell(value):
+    """Neutralize spreadsheet formulas in exported CSVs without changing numbers."""
+    if not isinstance(value, str):
+        return value
+    if value.lstrip().startswith(("=", "+", "-", "@")):
+        try:
+            float(value)
+        except ValueError:
+            return "'" + value
+    return value
+
 
 
 def main(argv=None):
@@ -56,7 +70,7 @@ def main(argv=None):
         dossier = supervisor.process_task(payload)
         print("=" * 80)
         print(f"  NIH REPORTER GRANT SIMILARITY AGENT")
-        print(f"  Domain: Clinical & Biomedical AI | Standard: CAP / CLSI / ISO Standards")
+        print(f"  Domain: Clinical & Biomedical AI | Rules: illustrative thresholds (not validated standards)")
         print(f"  Dossier ID: {dossier.dossier_id} | Urgency: [{dossier.overall_urgency.value}]")
         print("=" * 80)
         for a in dossier.alerts:
@@ -85,7 +99,7 @@ def main(argv=None):
             fieldnames = list(reader.fieldnames or [])
             rows = list(reader)
 
-        out_fields = fieldnames + ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]
+        out_fields = list(dict.fromkeys(fieldnames + ["overall_urgency", "integrity_status", "total_alerts", "audit_hash"]))
         out_rows = []
         errors = 0
         for idx, r in enumerate(rows, start=1):
@@ -105,14 +119,15 @@ def main(argv=None):
                 row_dict["total_alerts"] = dossier.total_alerts
                 row_dict["audit_hash"] = dossier.audit_hash
                 out_rows.append(row_dict)
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError, SecurityException) as e:
                 errors += 1
                 print(f"  [WARN] Row {idx} skipped: {e}")
 
         with open(args.output, mode="w", encoding="utf-8", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=out_fields)
-            writer.writeheader()
-            writer.writerows(out_rows)
+            writer = csv.writer(f)
+            writer.writerow([_safe_spreadsheet_cell(name) for name in out_fields])
+            for row in out_rows:
+                writer.writerow([_safe_spreadsheet_cell(row.get(name, "")) for name in out_fields])
         print(f"Processed {len(out_rows)} records -> {args.output} ({errors} skipped)")
         return 0
 

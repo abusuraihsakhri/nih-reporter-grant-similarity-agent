@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nih-reporter-grant-similarity-engine"
 version = "2.0.0"
-description = "GrantMatch-AI: NIH RePORT & RePADD Grant Scientific Similarity Engine"
+description = "Rule evaluation prototype with CLI, REST API, and browser demonstration"
 readme = "README.md"
 authors = [{ name = "Dr. Abu Suraih Sakhri", email = "abusuraih@example.com" }]
 license = { text = "MIT" }
@@ -13,15 +13,28 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Topic :: Security/Cryptography",
+    "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 requires-python = ">=3.9"
-dependencies = []
+dependencies = ["pydantic>=2.0,<3"]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.100,<1", "uvicorn>=0.23,<1"]
+dev = ["pytest>=8,<10", "httpx>=0.24,<1"]
+
+[tool.setuptools]
+packages = ["agents", "grant_match_ai", "web"]
+py-modules = ["cli", "enrichment", "simulator", "grant_match_ai_app"]
+
+[tool.setuptools.package-data]
+web = ["index.html"]
+
 
 [project.scripts]
 nih-reporter-grant-similarity-engine = "grant_match_ai.cli:main"
+nih-reporter-grant-similarity-agent = "cli:main"
 
 [project.urls]
-Homepage = "https://github.com/abusuraihsakhri/nih-reporter-grant-similarity-engine"
-Repository = "https://github.com/abusuraihsakhri/nih-reporter-grant-similarity-engine.git"
+Homepage = "https://github.com/abusuraihsakhri/nih-reporter-grant-similarity-agent"
+Repository = "https://github.com/abusuraihsakhri/nih-reporter-grant-similarity-agent.git"

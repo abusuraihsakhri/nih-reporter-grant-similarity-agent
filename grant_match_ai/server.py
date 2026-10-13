@@ -3,6 +3,7 @@ FastAPI REST API Server for GrantMatch-AI: NIH RePORT & RePADD Grant Scientific 
 """
 from typing import Dict, Any
 from .models import FrontierPayload
+from agents.base import SecurityException
 from .agents import GrantMatchCoordinator
 
 coordinator = GrantMatchCoordinator()
@@ -11,11 +12,12 @@ coordinator = GrantMatchCoordinator()
 def create_app():
     try:
         from fastapi import FastAPI
-        from pydantic import BaseModel
+        from pydantic import BaseModel, Field
+        from fastapi import HTTPException
 
         app = FastAPI(
             title="GrantMatch-AI: NIH RePORT & RePADD Grant Scientific Similarity Agent",
-            description="Computes semantic cosine similarity, Study Section assignment likelihood, and overlapping aims across biomedical grant abstracts.",
+            description="Evaluates threshold and anomaly rules; does not compute grant text similarity.",
             version="2.0.0-FRONTIER",
         )
 
@@ -26,7 +28,7 @@ def create_app():
             secondary_metric: float = 14.2
             status_descriptor: str = "DISCORDANT_ANOMALY"
             is_critical_flag: bool = True
-            attributes: Dict[str, Any] = {}
+            attributes: Dict[str, Any] = Field(default_factory=dict)
 
         class ChatRequest(BaseModel):
             query: str
@@ -37,16 +39,21 @@ def create_app():
 
         @app.post("/api/audit")
         def api_audit(req: TaskRequest):
-            payload = FrontierPayload(
-                task_id=req.task_id,
-                target_identifier=req.target_identifier,
-                primary_metric=req.primary_metric,
-                secondary_metric=req.secondary_metric,
-                status_descriptor=req.status_descriptor,
-                is_critical_flag=req.is_critical_flag,
-                attributes=req.attributes,
-            )
-            return coordinator.process(payload)
+            try:
+                payload = FrontierPayload(
+                    task_id=req.task_id,
+                    target_identifier=req.target_identifier,
+                    primary_metric=req.primary_metric,
+                    secondary_metric=req.secondary_metric,
+                    status_descriptor=req.status_descriptor,
+                    is_critical_flag=req.is_critical_flag,
+                    attributes=req.attributes,
+                )
+                return coordinator.process(payload)
+            except SecurityException:
+                raise HTTPException(status_code=422, detail="Input contains a possible personal identifier") from None
+            except (ValueError, TypeError):
+                raise HTTPException(status_code=422, detail="Metrics must be finite numbers") from None
 
         @app.post("/api/chat")
         def api_chat(req: ChatRequest):

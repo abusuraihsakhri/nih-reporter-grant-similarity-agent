@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Nih Reporter Grant Similarity Engine API",
-    "description": "Enterprise Distributed Component Platform (Clinical & Cryptographic AI) adhering to CAP / CLSI / NIST Standards.",
+    "title": "Grant Rule Evaluation API",
+    "description": "Deterministic threshold and anomaly-rule evaluation; no NIH grant similarity or live model inference.",
     "version": "3.0.0-ENTERPRISE",
     "contact": {
       "name": "Dr. Abu Suraih Sakhri",
@@ -22,10 +22,10 @@
     },
     "/metrics": {
       "get": {
-        "summary": "Prometheus operational metrics",
+        "summary": "JSON operational counters",
         "responses": {
           "200": {
-            "description": "Prometheus text metrics"
+            "description": "JSON counter object"
           }
         }
       }
@@ -76,7 +76,7 @@
     },
     "/api/chat": {
       "post": {
-        "summary": "Air-gapped supervisory conversational assistant",
+        "summary": "Deterministic mock supervisory response",
         "requestBody": {
           "content": {
             "application/json": {
@@ -103,12 +103,42 @@
     },
     "/api/audit/logs": {
       "get": {
-        "summary": "Retrieve and cryptographically verify HMAC audit trail",
+        "summary": "Read in-memory audit metadata with credential",
         "responses": {
           "200": {
-            "description": "Cryptographic audit trail"
+            "description": "Signed audit metadata and integrity check result"
+          },
+          "403": {
+            "description": "Missing or incorrect audit access token"
+          },
+          "503": {
+            "description": "Audit access token not configured"
+          }
+        },
+        "security": [
+          {
+            "auditToken": []
+          }
+        ]
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Self-contained browser rule console",
+        "responses": {
+          "200": {
+            "description": "HTML interface"
           }
         }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "auditToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Audit-Token"
       }
     }
   }

@@ -37,3 +37,7 @@ output.csv
 # Secrets
 .env
 .env.local
+
+# Sensitive local configuration
+.env.*
+!.env.example

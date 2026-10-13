@@ -1,188 +1,75 @@
-# Nih Reporter Grant Similarity Agent
+# NIH RePORTER Grant Similarity Agent
 
-> **Domain:** Clinical Decision Support & Biomedical Computing / Research Administration
+A Python rule-evaluation prototype with a CLI, FastAPI service, and self-contained browser demonstration.
 
-<div align="center">
+**Scope:** The current code evaluates numeric thresholds, a critical flag, and anomaly keywords. Despite the repository name, it **does not** query NIH RePORTER, compare grant abstracts, compute cosine similarity, predict NIH study sections, or establish scientific overlap. The outputs are rule alerts, not validated research or clinical recommendations.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+## Features
 
-</div>
+- Three rule workers: primary metric greater than 25, secondary metric greater than 12 or critical flag, and anomaly-descriptor detection.
+- Consensus dossier with routine, elevated, or critical severity.
+- In-memory HMAC-SHA256 audit chain for the main Python engine, including signature verification.
+- Python CLI, CSV batch processor, JSON API, and independent `grant_match_ai` compatibility interface.
+- `web/index.html`: API console when served from the backend; clearly labeled local demonstration when opened from a file or GitHub Pages.
 
----
+## Run locally
 
-## 📖 What It Does
-
-Nih Reporter Grant Similarity Agent is a multi-agent evaluation engine that processes task payloads through specialized workers to produce consensus dossiers with cryptographic audit trails. It supports:
-
-- **Multi-agent evaluation** with InvariantQC, Safety Escalation, and Protocol Conformance workers
-- **HMAC-SHA256 tamper-evident audit logging** with chained integrity verification
-- **Zero-PHI outbound guard** that blocks SSNs, MRNs, emails, and patient identifiers
-- **FastAPI REST API** for task processing and chat queries
-- **CLI interface** for single evaluations, batch CSV processing, and server mode
-- **Prometheus metrics export** and WebSocket telemetry streaming
-
----
-
-## ⚙️ Architecture
-
-The project consists of two main modules:
-
-| Module | Description |
-|--------|-------------|
-| `agents/` | Core evaluation engine with supervisor, workers, PHI guard, and audit trail |
-| `grant_match_ai/` | Frontier domain module for NIH RePORT & RePADD grant similarity analysis |
-| `enrichment/` | Enrichment suite with portfolio, compliance, budget, and collaboration modules |
-
----
-
-## 💻 Quickstart
-
-### Installation
+Requires Python 3.9 or newer. CI currently tests Python 3.10–3.12.
 
 ```bash
-pip install -e .
+python -m pip install -e ".[api,dev]"
+python -m pytest -q
+nih-reporter-grant-similarity-agent audit --task-id TEST-01 --target KEY-01 --primary 28 --secondary 14
+nih-reporter-grant-similarity-agent batch -i sample.csv -o results.csv
+nih-reporter-grant-similarity-agent verify-audit
+nih-reporter-grant-similarity-agent serve --host 127.0.0.1 --port 8000
 ```
 
-For development:
-```bash
-pip install -e ".[dev]"
-```
+Open `http://127.0.0.1:8000/` for the console or `http://127.0.0.1:8000/docs` for generated API documentation. The original compatibility entry point `nih-reporter-grant-similarity-engine` remains available and invokes `grant_match_ai.cli`.
 
-### CLI Usage
+### API
 
-#### Single Task Evaluation
-```bash
-python cli.py audit --task-id TASK-001 --target KEY-01 --primary 28.5 --secondary 14.2 --critical --status DISCORDANT
-```
+- `GET /health` — status and service metadata.
+- `POST /api/audit` — rule evaluation; requires `task_id`, `target_identifier`, and `primary_metric`. Other fields are optional.
+- `POST /api/chat` — deterministic mock supervisory response (not a live language model).
+- `GET /metrics` — JSON counters, not Prometheus text.
+- `GET /api/audit/logs` — audit metadata, restricted by the `X-Audit-Token` header. Requires a non-empty `AUDIT_API_TOKEN` on the server; otherwise returns HTTP 503.
 
-#### Supervisory Chat
-```bash
-python cli.py chat "What is the system status?"
-```
+The `grant_match_ai` directory exposes a second, separately defined threshold-based interface (`python -m grant_match_ai.cli --help`). Its labels describe grant-related agents, but its calculations are not a grant-similarity algorithm.
 
-#### Batch CSV Processing
-```bash
-python cli.py batch -i sample.csv -o results.csv
-```
+## Docker
 
-#### Verify Audit Trail Integrity
-```bash
-python cli.py verify-audit
-```
-
-#### Launch REST API Server
-```bash
-python cli.py serve --host 127.0.0.1 --port 8000
-```
-
-### Input Data Schema
-
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `task_id` | Unique task identifier | Required |
-| `target_identifier` | Entity or target key | Required |
-| `primary_metric` | Primary measurement value | Required |
-| `secondary_metric` | Secondary confidence score | Optional (default: 0.0) |
-| `is_critical_flag` | Emergency escalation flag | Optional (default: False) |
-| `status_descriptor` | Status code or phenotype | Optional (default: "NOMINAL") |
-
----
-
-## 🛡️ Security
-
-- **Zero-PHI Outbound Guard:** Active regex inspection blocking SSNs, MRNs, phone numbers, emails, and patient identifiers
-- **HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation
-- **Input Validation:** Finite numeric checks, string length limits, and NaN/Infinity rejection
-- **Audit Secret Key:** Configure via `AUDIT_SECRET_KEY` environment variable (required for production)
-
-### Environment Variables
-
-| Variable | Description | Default |
-|:---------|:------------|:--------|
-| `AUDIT_SECRET_KEY` | HMAC signing key for audit trail | Ephemeral (generated per session) |
-| `MODEL_PROVIDER` | LLM backend (mock, ollama, claude, openai) | mock |
-
----
-
-## 🧪 Testing
-
-Run the full test suite:
+Create a local `.env` using `.env.example`. Set **distinct, random, non-empty** values for `AUDIT_SECRET_KEY` and `AUDIT_API_TOKEN`, then run:
 
 ```bash
-pytest -v
+docker compose up --build
 ```
 
-Run with coverage:
+Compose binds the HTTP service to `127.0.0.1:8000`, not the public network. Do not expose the API directly to untrusted clients; audit and evaluation endpoints are not a complete access-control system. A reverse proxy with authentication and TLS is required for a public deployment.
+
+## Browser and GitHub Pages
+
+`web/index.html` is a static, responsive client requiring no JavaScript build or Python runtime. From a local file or GitHub Pages, it executes the same three **illustrative threshold rules** in JavaScript. It does not sign an audit record, contact NIH, or send data to a backend. When served from the FastAPI root route, it calls the same-origin API instead. The UI does not silently fabricate signed audit results when a server request fails.
+
+GitHub Pages can host only the static demonstration; it cannot run the Python FastAPI service, maintain the Python audit ledger, or store signing secrets. No Pyodide runtime is necessary for the three simple local rules.
+
+## Security and data handling
+
+- The in-memory audit ledger signs each block with HMAC-SHA256 and verifies block signatures and links. It **does not persist** across restarts, and its confidentiality depends on protecting the signing key.
+- A regex-based identifier guard checks several common PHI patterns in input. It is **not comprehensive de-identification or a HIPAA compliance guarantee**. Do not submit protected health information or other identifiable personal data.
+- API evaluation data and logs reside in process memory. The browser demonstration runs locally without uploading input.
+- Keep `.env` and credentials out of version control. Container Compose requires explicit credentials.
+
+## Development and tests
 
 ```bash
-pytest -v --cov=agents --cov=grant_match_ai --cov-report=term-missing
+python -m pip install -e ".[api,dev]"
+python -m compileall -q agents grant_match_ai cli.py enrichment.py simulator.py
+python -m pytest -q
 ```
 
-Execute high-throughput simulation benchmarks:
+CI also checks package installation, JavaScript syntax, and the packaged CLI command. The implementation uses Python, Pydantic, FastAPI/Uvicorn (optional API extras), HTML, CSS, and vanilla JavaScript.
 
-```bash
-python simulator.py 1000
-```
+## License
 
----
-
-## 🐳 Container Deployment
-
-```bash
-docker build -t nih-reporter-grant-similarity-agent .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-secret-key nih-reporter-grant-similarity-agent
-```
-
-Or using docker-compose:
-
-```bash
-docker-compose up -d
-```
-
----
-
-## 📁 Project Structure
-
-```
-nih-reporter-grant-similarity-agent/
-├── agents/                  # Core evaluation engine
-│   ├── __init__.py
-│   ├── api.py              # FastAPI REST endpoints
-│   ├── base.py             # PHI guard, audit trail, security
-│   ├── learning.py         # Active learning calibration
-│   ├── llm_factory.py      # LLM client factory
-│   ├── metrics.py          # Prometheus metrics collector
-│   ├── models.py           # Pydantic data models
-│   ├── streamer.py         # WebSocket telemetry
-│   ├── supervisor.py       # Multi-agent orchestrator
-│   └── workers.py          # Specialized evaluation workers
-├── grant_match_ai/          # Grant similarity module
-│   ├── agents.py           # Domain-specific agents
-│   ├── cli.py              # CLI for grant module
-│   ├── engine.py           # Core algorithmic engine
-│   ├── models.py           # Domain data models
-│   └── server.py           # FastAPI server factory
-├── tests/                   # Test suite
-│   ├── conftest.py         # Pytest configuration
-│   ├── test_enrichment.py
-│   ├── test_grant_match_ai.py
-│   └── test_nih_reporter_grant_similarity_agent.py
-├── web/index.html           # Operations console UI
-├── enrichment.py            # Feature enrichment suite
-├── cli.py                   # Main CLI entry point
-├── simulator.py             # High-throughput stress testing
-├── pyproject.toml           # Project configuration
-├── Dockerfile               # Container build
-└── docker-compose.yml       # Compose configuration
-```
-
----
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE).

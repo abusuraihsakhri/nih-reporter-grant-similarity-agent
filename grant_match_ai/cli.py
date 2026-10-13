@@ -5,10 +5,24 @@ import argparse
 import csv
 import json
 import sys
+from agents.base import SecurityException
 from .models import FrontierPayload
 from .agents import GrantMatchCoordinator
 
 coordinator = GrantMatchCoordinator()
+
+
+def _safe_spreadsheet_cell(value):
+    """Neutralize spreadsheet formulas in exported CSVs without changing numbers."""
+    if not isinstance(value, str):
+        return value
+    if value.lstrip().startswith(("=", "+", "-", "@")):
+        try:
+            float(value)
+        except ValueError:
+            return "'" + value
+    return value
+
 
 
 def main(argv=None):
@@ -74,7 +88,7 @@ def main(argv=None):
             fieldnames = list(reader.fieldnames or [])
             rows = list(reader)
 
-        out_fields = fieldnames + ["overall_status", "total_alerts", "critical_count", "consensus_summary"]
+        out_fields = list(dict.fromkeys(fieldnames + ["overall_status", "total_alerts", "critical_count", "consensus_summary"]))
         out_rows = []
         errors = 0
         for idx, r in enumerate(rows, start=1):
@@ -94,14 +108,15 @@ def main(argv=None):
                 row_dict["critical_count"] = dossier["critical_count"]
                 row_dict["consensus_summary"] = dossier["consensus_summary"]
                 out_rows.append(row_dict)
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError, SecurityException) as e:
                 errors += 1
                 print(f"  [WARN] Row {idx} skipped: {e}")
 
         with open(args.output, mode="w", encoding="utf-8", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=out_fields)
-            writer.writeheader()
-            writer.writerows(out_rows)
+            writer = csv.writer(f)
+            writer.writerow([_safe_spreadsheet_cell(name) for name in out_fields])
+            for row in out_rows:
+                writer.writerow([_safe_spreadsheet_cell(row.get(name, "")) for name in out_fields])
         print(f"Processed {len(out_rows)} records -> {args.output} ({errors} skipped)")
         return 0
 
