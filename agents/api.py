@@ -16,7 +16,7 @@ supervisor = SystemSupervisor(model_provider="mock")
 
 app = FastAPI(
     title="Nih Reporter Grant Similarity Agent API",
-    description="Enterprise Distributed Component Platform (Clinical & Biomedical AI)",
+    description="Demonstration of three threshold and anomaly rules, with an in-memory audit ledger",
     version="3.0.0-ENTERPRISE",
 )
 
