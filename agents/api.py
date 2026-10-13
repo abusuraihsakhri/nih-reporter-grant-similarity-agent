@@ -4,7 +4,7 @@ FastAPI REST API Server for Nih Reporter Grant Similarity Agent.
 import os
 import secrets
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -30,7 +30,7 @@ def home():
     return FileResponse(Path(__file__).resolve().parent.parent / "web" / "index.html")
 
 
-def require_audit_token(x_audit_token: str | None = Header(default=None)):
+def require_audit_token(x_audit_token: Optional[str] = Header(default=None)):
     """Do not expose log metadata without an explicitly configured credential."""
     expected = os.environ.get("AUDIT_API_TOKEN")
     if not expected:
