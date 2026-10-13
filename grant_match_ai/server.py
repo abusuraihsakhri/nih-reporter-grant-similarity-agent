@@ -17,7 +17,7 @@ def create_app():
 
         app = FastAPI(
             title="GrantMatch-AI: NIH RePORT & RePADD Grant Scientific Similarity Agent",
-            description="Computes semantic cosine similarity, Study Section assignment likelihood, and overlapping aims across biomedical grant abstracts.",
+            description="Evaluates threshold and anomaly rules; does not compute grant text similarity.",
             version="2.0.0-FRONTIER",
         )
 
@@ -39,7 +39,8 @@ def create_app():
 
         @app.post("/api/audit")
         def api_audit(req: TaskRequest):
-            payload = FrontierPayload(
+            try:
+                payload = FrontierPayload(
                 task_id=req.task_id,
                 target_identifier=req.target_identifier,
                 primary_metric=req.primary_metric,
@@ -47,11 +48,12 @@ def create_app():
                 status_descriptor=req.status_descriptor,
                 is_critical_flag=req.is_critical_flag,
                 attributes=req.attributes,
-            )
-            try:
+                )
                 return coordinator.process(payload)
             except SecurityException:
                 raise HTTPException(status_code=422, detail="Input contains a possible personal identifier") from None
+            except (ValueError, TypeError):
+                raise HTTPException(status_code=422, detail="Metrics must be finite numbers") from None
 
         @app.post("/api/chat")
         def api_chat(req: ChatRequest):
