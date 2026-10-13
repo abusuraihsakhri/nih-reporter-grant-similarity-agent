@@ -24,7 +24,10 @@ api = ["fastapi>=0.100,<1", "uvicorn>=0.23,<1"]
 dev = ["pytest>=8,<10", "httpx>=0.24,<1"]
 
 [tool.setuptools]
-packages = ["agents", "grant_match_ai"]
+packages = ["agents", "grant_match_ai", "web"]
+
+[tool.setuptools.package-data]
+web = ["index.html"]
 py-modules = ["cli", "enrichment", "simulator", "grant_match_ai_app"]
 
 
