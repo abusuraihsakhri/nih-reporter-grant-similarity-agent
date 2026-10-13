@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nih-reporter-grant-similarity-engine"
 version = "2.0.0"
-description = "GrantMatch-AI: NIH RePORT & RePADD Grant Scientific Similarity Engine"
+description = "Rule evaluation prototype with CLI, REST API, and browser demonstration"
 readme = "README.md"
 authors = [{ name = "Dr. Abu Suraih Sakhri", email = "abusuraih@example.com" }]
 license = { text = "MIT" }
@@ -25,10 +25,10 @@ dev = ["pytest>=8,<10", "httpx>=0.24,<1"]
 
 [tool.setuptools]
 packages = ["agents", "grant_match_ai", "web"]
+py-modules = ["cli", "enrichment", "simulator", "grant_match_ai_app"]
 
 [tool.setuptools.package-data]
 web = ["index.html"]
-py-modules = ["cli", "enrichment", "simulator", "grant_match_ai_app"]
 
 
 [project.scripts]
@@ -37,4 +37,4 @@ nih-reporter-grant-similarity-agent = "cli:main"
 
 [project.urls]
 Homepage = "https://github.com/abusuraihsakhri/nih-reporter-grant-similarity-agent"
-Repository = "https://github.com/abusuraihsakhri/nih-reporter-grant-similarity-engine.git"
+Repository = "https://github.com/abusuraihsakhri/nih-reporter-grant-similarity-agent.git"
