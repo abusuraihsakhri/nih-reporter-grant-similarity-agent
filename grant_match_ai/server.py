@@ -41,13 +41,13 @@ def create_app():
         def api_audit(req: TaskRequest):
             try:
                 payload = FrontierPayload(
-                task_id=req.task_id,
-                target_identifier=req.target_identifier,
-                primary_metric=req.primary_metric,
-                secondary_metric=req.secondary_metric,
-                status_descriptor=req.status_descriptor,
-                is_critical_flag=req.is_critical_flag,
-                attributes=req.attributes,
+                    task_id=req.task_id,
+                    target_identifier=req.target_identifier,
+                    primary_metric=req.primary_metric,
+                    secondary_metric=req.secondary_metric,
+                    status_descriptor=req.status_descriptor,
+                    is_critical_flag=req.is_critical_flag,
+                    attributes=req.attributes,
                 )
                 return coordinator.process(payload)
             except SecurityException:
