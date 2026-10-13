@@ -3,6 +3,7 @@ FastAPI REST API Server for GrantMatch-AI: NIH RePORT & RePADD Grant Scientific 
 """
 from typing import Dict, Any
 from .models import FrontierPayload
+from agents.base import SecurityException
 from .agents import GrantMatchCoordinator
 
 coordinator = GrantMatchCoordinator()
@@ -11,7 +12,8 @@ coordinator = GrantMatchCoordinator()
 def create_app():
     try:
         from fastapi import FastAPI
-        from pydantic import BaseModel
+        from pydantic import BaseModel, Field
+        from fastapi import HTTPException
 
         app = FastAPI(
             title="GrantMatch-AI: NIH RePORT & RePADD Grant Scientific Similarity Agent",
@@ -26,7 +28,7 @@ def create_app():
             secondary_metric: float = 14.2
             status_descriptor: str = "DISCORDANT_ANOMALY"
             is_critical_flag: bool = True
-            attributes: Dict[str, Any] = {}
+            attributes: Dict[str, Any] = Field(default_factory=dict)
 
         class ChatRequest(BaseModel):
             query: str
@@ -46,7 +48,10 @@ def create_app():
                 is_critical_flag=req.is_critical_flag,
                 attributes=req.attributes,
             )
-            return coordinator.process(payload)
+            try:
+                return coordinator.process(payload)
+            except SecurityException:
+                raise HTTPException(status_code=422, detail="Input contains a possible personal identifier") from None
 
         @app.post("/api/chat")
         def api_chat(req: ChatRequest):
